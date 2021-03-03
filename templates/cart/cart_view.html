@@ -1,0 +1,61 @@
+{% extends '_base.html' %}
+
+{% block title %}
+    Cart
+{% endblock %}
+
+{% block content %}
+    <h3 class="text-center mt-5 mb-5">Ваша карзина {% if not cart.products.count %}Пуста{% endif %}</h3>
+    {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>{{message}}</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      {% endfor %}
+    {% endif %}
+    {% if cart.products.count %}
+    <table class="table table-dark">
+        <thead>
+          <tr>
+            <th scope="col">Наименование</th>
+            <th scope="col">Изображение</th>
+            <th scope="col">Цена</th>
+            <th scope="col">Колличество</th>
+            <th scope="col">Общая цена</th>
+              <th scope="col">Удаление</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for item in cart.products.all %}
+          <tr>
+            <th scope="row"><a href="{{item.product.get_absolute_url}}">{{ item.product.title}}</a></th>
+
+            <td class='w-25'><img class="img-fluid" src="{{item.product.image.url}}" alt=""></td>
+            <td>{{item.content_object.price}}</td>
+            <td>
+              <form action="{% url 'qty_change' slug=item.product.slug %}" method="POST">
+                {% csrf_token %}
+                <input type="number" class='form-control' name='qty' value='{{item.qty}}' min="1" max="{{item.product.qty}}">
+                <input type="submit" class='btn btn-primary' value='Изменить'>
+              </form>
+            </td>
+            <td>{{item.final_price}}$</td>
+            <td>
+              <a href="{% url 'delete_item_from_cart' slug=item.product.slug %}"><button class="btn btn-danger">Удалить</button></a>
+          </td>
+          </tr>
+          {% endfor %}
+        <tr>
+            <td colspan="2"></td>
+            <td>Итого:</td>
+            <td>{{cart.total_products}}</td>
+            <td><strong>{{cart.final_price}}</strong>$</td>
+            <td><a href="{% url 'checkout' %}"><button class='btn btn-primary'>Оформить заказ</button></a></td>
+        </tr>
+        </tbody>
+      </table>
+      {% endif %}
+{% endblock %}

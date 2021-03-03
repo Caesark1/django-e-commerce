@@ -1,0 +1,35 @@
+{% extends '_base.html' %}
+
+{% block title %}
+    {{product.title}}
+{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
+      {% for parent in product.category.get_ancestors %}
+        <li class="breadcrumb-item"><a href="{{parent.get_absolute_url}}">{{parent.name}}</a></li>
+      {% endfor %}
+      <li class="breadcrumb-item"><a href="{{product.category.get_absolute_url}}">{{product.category.name}}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{product.title}}</li>
+  </ol>
+</nav>
+<div class="row">
+
+    <div class="col-nd-4">
+        <img src="{{product.image.url}}" class="img-fluid">
+    </div>
+    <div class="col-nd-8">
+      <p style='font-size:13px;'>Категория: {{product.category}}</p>
+        <h3>{{product.title}}</h3>
+        <p>Продавец: {{product.vendor}}</p>        
+        <p>Цена: {{product.price}}$</p>
+        <p>Описание: {{product.description}}</p>
+        <hr>
+        <a href="{% url 'add_cart' slug=product.slug %}"><button class="btn btn-danger">Добавить в корзину</button></a>
+    </div>
+
+</div>
+
+{% endblock %}
