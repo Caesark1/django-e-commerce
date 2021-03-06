@@ -36,15 +36,9 @@ class ProductDetailView(CartMixin, DetailView):
         context = super().get_context_data(**kwargs)
         product = kwargs.get('object')
         product_images = ProductImage.objects.filter(product=product)
-        product_feature_names = ProductFeatureName.objects.filter(category=product.category)
         product_feature_values = ProductFeatureValue.objects.filter(product=product)
-        name_and_value = {}
-        for n, v in zip(product_feature_names, product_feature_values):
-            name_and_value[n] = v
-        print(name_and_value)
         context['cart'] = self.cart
         context['product_images'] = product_images
-        context['product_feature_names'] = product_feature_names
         context['product_feature_values'] = product_feature_values
         return context
 

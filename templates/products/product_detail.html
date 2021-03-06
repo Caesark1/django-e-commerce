@@ -26,18 +26,16 @@
       <p style='font-size:13px;'>Категория: {{product.category}}</p>
         <h3>{{product.title}}</h3>
         <p>Продавец: {{product.vendor}}</p>        
-        <p>Цена: {{product.price}}$</p>
+        <p>Цена: {{product.price}} Сом</p>
         <p>Описание: {{product.description}}</p>
         Характеристики:
         <hr>
-<!--        {% for product_feature_name in product_feature_names %}-->
-<!--            <p>{{product_feature_name.feature_name}}: </p>-->
-<!--        {% endfor %}-->
         {% for product_feature_value in product_feature_values %}
-                {{product_feature_value.feature}}
-<!--            {% for product_feature_name in product_feature_value.feature %}-->
-<!--            <p>{{product_feature_name.feature_name}} - {{product_feature_value.feature_value}}</p>-->
-<!--            {% endfor %}-->
+        {% if product_feature_value.feature.postfix_for_value %}
+        <p>{{product_feature_value.feature.feature_name }}: {{product_feature_value.feature_value}} {{product_feature_value.feature.postfix_for_value }}</p>
+        {% else %}
+        <p>{{product_feature_value.feature.feature_name }}: {{product_feature_value.feature_value}}</p>
+        {% endif %}
         {% endfor %}
         <hr>
         <a href="{% url 'add_cart' slug=product.slug %}"><button class="btn btn-danger">Добавить в корзину</button></a>

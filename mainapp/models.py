@@ -79,7 +79,7 @@ class Cart(models.Model):
 
 class Product(models.Model):
 
-    category = models.ForeignKey('Category', verbose_name='Категория', on_delete=models.CASCADE)
+    category = models.ForeignKey('Category', verbose_name='Категория', on_delete=models.CASCADE, related_name='products')
     vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
     title = models.CharField(max_length=255, verbose_name='Наименование Товара')
     slug = models.SlugField(unique=True)
