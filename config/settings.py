@@ -37,14 +37,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
 
     #third
     'mptt',
     'crispy_forms',
+    'allauth',
+    'allauth.account',
 
     # local 
-    'mainapp'
+    'mainapp',
+    'accounts',
 ]
+
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -134,3 +140,24 @@ STATICFILE_DIRS = (
     BASE_DIR / 'static_dev'
 )
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+LOGIN_REDIRECT_URL = 'index'
+ACCOUNT_LOGOUT_REDIRECT = 'index'
+
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = 'Testfordjango1@gmail.com'
+EMAIL_HOST_PASSWORD = 'testdjango'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+ACCOUNT_FORMS = {'signup': 'mainapp.forms.CustomSignupForm'}
+
+SITE_ID = 1

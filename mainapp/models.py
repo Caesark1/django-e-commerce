@@ -32,7 +32,7 @@ class Vendor(models.Model):
 
 
 class Customer(models.Model):
-    user = models.ForeignKey(User, verbose_name='Пользователь ', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, verbose_name='Пользователь ', on_delete=models.CASCADE, related_name = 'customer')
     phone_number = models.CharField(max_length=15, verbose_name='Номер телефона пользователя', null=True, blank=True)
     address = models.CharField(max_length=100, verbose_name='Адрес пользователя', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -77,7 +77,6 @@ class Cart(models.Model):
         return f'cart of {self.owner.user}' if self.owner else "cart of anonymous user"
 
 
-
 class Product(models.Model):
 
     category = models.ForeignKey('Category', verbose_name='Категория', on_delete=models.CASCADE)
@@ -87,7 +86,6 @@ class Product(models.Model):
     description = models.TextField(verbose_name='Описание товара', null=True)
     price = models.DecimalField(max_digits=9, decimal_places=2, verbose_name='Цена продукта')
     qty = models.PositiveIntegerField()
-    image = models.ImageField(upload_to = 'uploads/', blank=True, null=True, verbose_name='Фотография продукта')
     date_added = models.DateTimeField(auto_now_add=True)
     thumbnail = models.ImageField(upload_to = 'uploads/', blank=True, null=True)
     is_available = models.BooleanField(default=True)
@@ -97,33 +95,45 @@ class Product(models.Model):
     def __str__(self):
         return self.title
 
-    def get_thumbnail(self):
-        if self.thumbnail:
-            return self.thumbnail.url
-        else:
-            if self.image:
-                self.thumbnail = self.make_thumbnail(self.image)
-                self.save()
-                return self.thumbnail.url
-            else:
-                return 'https://via.placeholder.com/240x180.jpg'
-
-    def make_thumbnail(self, image, size = (400,400)):
-        img = Image.open(image)
-        img.convert('RGB')
-        img.thumbnail(size)
-
-        thumb_io = BytesIO()
-        img.save(thumb_io, 'JPEG', quality=85)
-
-        thumbnail = File(thumb_io, name = image.name)
-        return thumbnail
-
     def get_absolute_url(self):
         return reverse("product_detail", kwargs={"slug": self.slug})
 
     def get_model_name(self):
         return self.__class__.__name__.lower()
+
+
+class ProductImage(models.Model):
+
+    description = models.CharField(max_length=100, blank=True, null=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    image = models.ImageField(upload_to='uploads/', blank=True, null=True)
+
+    def __str__(self):
+        return f'Фотография - {self.product.title} продукта'
+
+
+class ProductFeatureName(models.Model):
+
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    feature_key = models.CharField(max_length=200)
+    feature_name = models.CharField(max_length=200)
+    postfix_for_value = models.CharField(max_length=20, null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f'Категория - "{self.category.name}" | Характеристика - "{self.feature_name}"'
+
+
+class ProductFeatureValue(models.Model):
+
+    category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    feature = models.ForeignKey(ProductFeatureName, null=True, blank=True, on_delete=models.CASCADE, related_name='features')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    feature_value = models.CharField(max_length=200, unique=True, null=True, blank=True)
+
+    def __str__(self):
+        return f'Валидатор категории "{self.category.name} | "'  \
+               f'Характеристики - {self.feature.feature_name}' \
+               f'Значение - {self.feature_value}'
 
 
 class Category(MPTTModel):
@@ -145,6 +155,12 @@ class Category(MPTTModel):
     
     def get_absolute_url(self):
         return reverse("category_detail", kwargs={"slug": self.slug})
+
+    def get_fields_for_filter_in_template(self):
+        return ProductFeature.objects.filter(
+            category=self,
+            use_in_filter=True,
+        ).prefetch_related('category').value('featured_key', 'featured_measure', 'feature_name', 'filter_type')
 
 
 class Order(models.Model):
@@ -175,4 +191,3 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"{self.customer.user}s order"
-

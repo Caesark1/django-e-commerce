@@ -17,8 +17,10 @@
 </nav>
 <div class="row">
 
-    <div class="col-nd-4">
-        <img src="{{product.image.url}}" class="img-fluid">
+    <div class="col-nd-4 w-100">
+        {% for image in product_images %}
+        <img src="{{image.url}}" class="img-fluid">
+        {% endfor %}
     </div>
     <div class="col-nd-8">
       <p style='font-size:13px;'>Категория: {{product.category}}</p>
@@ -26,6 +28,17 @@
         <p>Продавец: {{product.vendor}}</p>        
         <p>Цена: {{product.price}}$</p>
         <p>Описание: {{product.description}}</p>
+        Характеристики:
+        <hr>
+<!--        {% for product_feature_name in product_feature_names %}-->
+<!--            <p>{{product_feature_name.feature_name}}: </p>-->
+<!--        {% endfor %}-->
+        {% for product_feature_value in product_feature_values %}
+                {{product_feature_value.feature}}
+<!--            {% for product_feature_name in product_feature_value.feature %}-->
+<!--            <p>{{product_feature_name.feature_name}} - {{product_feature_value.feature_value}}</p>-->
+<!--            {% endfor %}-->
+        {% endfor %}
         <hr>
         <a href="{% url 'add_cart' slug=product.slug %}"><button class="btn btn-danger">Добавить в корзину</button></a>
     </div>

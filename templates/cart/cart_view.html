@@ -33,7 +33,7 @@
           <tr>
             <th scope="row"><a href="{{item.product.get_absolute_url}}">{{ item.product.title}}</a></th>
 
-            <td class='w-25'><img class="img-fluid" src="{{item.product.image.url}}" alt=""></td>
+            <td class='w-25'><img class="img-fluid" src="{{item.product.thumbnail.url}}" alt=""></td>
             <td>{{item.content_object.price}}</td>
             <td>
               <form action="{% url 'qty_change' slug=item.product.slug %}" method="POST">
@@ -42,7 +42,7 @@
                 <input type="submit" class='btn btn-primary' value='Изменить'>
               </form>
             </td>
-            <td>{{item.final_price}}$</td>
+            <td>{{item.final_price}} сом</td>
             <td>
               <a href="{% url 'delete_item_from_cart' slug=item.product.slug %}"><button class="btn btn-danger">Удалить</button></a>
           </td>
@@ -52,7 +52,7 @@
             <td colspan="2"></td>
             <td>Итого:</td>
             <td>{{cart.total_products}}</td>
-            <td><strong>{{cart.final_price}}</strong>$</td>
+            <td><strong>{{cart.final_price}} сом</strong> </td>
             <td><a href="{% url 'checkout' %}"><button class='btn btn-primary'>Оформить заказ</button></a></td>
         </tr>
         </tbody>
