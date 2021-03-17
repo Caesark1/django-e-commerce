@@ -54,9 +54,9 @@ categoriesInput.addEventListener('change', e=>{
                 option.setAttribute('type', 'text')
                 option.setAttribute('name', item.feature_name)
                 option.setAttribute('placeholder', item.feature_name)
+                console.log(featurenamesDataBox)
                 featurenamesDataBox.appendChild(option2)
                 featurenamesDataBox.appendChild(option)
-                console.log(featurenamesDataBox)
             })
         },
         error: function(error){
@@ -71,6 +71,7 @@ categoriesInput.addEventListener('change', e=>{
 categoryForm.addEventListener('submit', e =>{
     console.log(e.target.value)
     e.preventDefault()
+    console.log(e)
     console.log('submitted')
     $.ajax({
         type: "POST",
