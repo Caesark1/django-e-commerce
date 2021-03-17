@@ -1,32 +1,33 @@
-from django.shortcuts import render
-from .models import Category, Customer, Order, CartProduct, Product, ProductImage, ProductFeatureValue, ProductFeatureName
+from django.core.exceptions import ValidationError
+from django.shortcuts import redirect, render
+from .models import Category, Customer, Order, CartProduct, Product, ProductImage, ProductFeatureName, ProductFeatureValue,Vendor
 from django.views.generic import DetailView, View
-from .mixins import CartMixin
-from django.http import HttpResponseRedirect
+from .mixins import CartMixin, IsLoginRequiredMixin, CustomLoginRequiredMixin
+from django.http import HttpResponseRedirect, JsonResponse
 from django.contrib import messages
-from .forms import OrderForm
+from .forms import OrderForm, CustomerSignUpForm, VendorCreationForm, ProductCreateForm
 from .utils import recalc_cart
 from django.db import transaction
-from django.contrib.auth.mixins import LoginRequiredMixin
-from .forms import CustomSignupForm
-from allauth.account.views import SignupView
-from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate, get_user_model, login
+from verify_email.email_handler import send_verification_email
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.views import LoginView
+from django.utils.text import slugify
+from django.forms import inlineformset_factory
 
 
 User = get_user_model()
 
 
-class BaseView(CartMixin, View):
+#Main logic
+class BaseView(View):
     def get(self, request, *args, **kwargs):
         products = Product.available.all()
-        context = {
-            'products': products,
-            'cart': self.cart
-        }
-        return render(request, '_base.html', context)
+        return render(request, '_base.html', {'products': products})
 
 
-class ProductDetailView(CartMixin, DetailView):
+
+class ProductDetailView(DetailView):
     model = Product
     template_name = 'products/product_detail.html'
     context_object_name = 'product'
@@ -35,15 +36,13 @@ class ProductDetailView(CartMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         product = kwargs.get('object')
-        product_images = ProductImage.objects.filter(product=product)
-        product_feature_values = ProductFeatureValue.objects.filter(product=product)
-        context['cart'] = self.cart
-        context['product_images'] = product_images
-        context['product_feature_values'] = product_feature_values
+        category = Category.objects.get(name=product.category)
+        product_feature_names = ProductFeatureName.objects.filter(category=category).order_by('feature_name')
+        context['product_feature_names'] = product_feature_names
         return context
 
 
-class CategoryDetailView(CartMixin, DetailView):
+class CategoryDetailView(DetailView):
     model = Category
     queryset = Category.objects.all()
     template_name = 'categories/category_detail.html'
@@ -52,11 +51,10 @@ class CategoryDetailView(CartMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['cart'] = self.cart
         return context
 
 
-class AddToCartView(LoginRequiredMixin, CartMixin, View):
+class AddToCartView(CustomLoginRequiredMixin, CartMixin,View):
 
     def get(self, request, *args, **kwargs):
         product_slug = kwargs.get('slug')
@@ -74,12 +72,10 @@ class AddToCartView(LoginRequiredMixin, CartMixin, View):
                 messages.add_message(request, messages.INFO, 'Товар успешно добавлен')
         cart_product.save()
         recalc_cart(self.cart)
-        
-
         return HttpResponseRedirect('/cart/')
 
 
-class DeleteCartVIew(LoginRequiredMixin, CartMixin, View):
+class DeleteCartVIew(CustomLoginRequiredMixin, CartMixin, View):
     def get(self, request, *args, **kwargs):
         product_slug = kwargs.get('slug')
         product = Product.available.get(slug=product_slug)
@@ -93,7 +89,7 @@ class DeleteCartVIew(LoginRequiredMixin, CartMixin, View):
         return HttpResponseRedirect('/cart/')
 
 
-class ChangeQTYView(LoginRequiredMixin, CartMixin, View):
+class ChangeQTYView(CustomLoginRequiredMixin, CartMixin, View):
     def post(self, request, *args, **kwargs):
         product_slug = kwargs.get('slug')
         product = Product.available.get(slug=product_slug)
@@ -101,14 +97,14 @@ class ChangeQTYView(LoginRequiredMixin, CartMixin, View):
             user=self.cart.owner, cart=self.cart, product=product,
         )
         qty = int(request.POST.get('qty'))
-        cart_product.qty=qty
+        cart_product.qty = qty
         cart_product.save()
         recalc_cart(self.cart)
         messages.add_message(request, messages.INFO, 'Количество товара успешно изменено')
         return HttpResponseRedirect('/cart/')
 
 
-class CartView(LoginRequiredMixin,CartMixin, View):
+class CartView(CustomLoginRequiredMixin, CartMixin, View):
 
     def get(self, request, *args, **kwargs):
         categories = Category.objects.all()
@@ -122,7 +118,7 @@ class CartView(LoginRequiredMixin,CartMixin, View):
         return render(request, 'cart/cart_view.html', context)
 
 
-class CheckoutView(LoginRequiredMixin, CartMixin, View):
+class CheckoutView(CustomLoginRequiredMixin, CartMixin, View):
 
     def get(self, request, *args, **kwargs):
         categories = Category.objects.all()
@@ -133,15 +129,15 @@ class CheckoutView(LoginRequiredMixin, CartMixin, View):
         context = {
                 'cart': self.cart,
                 'categories': categories,
-                'form': form
+                'form': form,
             }
         return render(request, 'order/checkout.html', context)
 
 
-class CreateOrderView(LoginRequiredMixin, CartMixin, View):
+class CreateOrderView(CustomLoginRequiredMixin, View):
 
     @transaction.atomic
-    def post(self, request,*args, **kwargs):
+    def post(self, request, *args, **kwargs):
         form = OrderForm(request.POST or None)
         customer = Customer.objects.get(user=request.user)
         if form.is_valid():
@@ -165,23 +161,138 @@ class CreateOrderView(LoginRequiredMixin, CartMixin, View):
                     product.is_available = False
                 product.save()
             customer.orders.add(new_order)
-            customer.phone_number = form.cleaned_data['phone_number']
-            customer.address = form.cleaned_data['address']
-            customer.save()
+            user = request.user
+            user.phone_number = form.cleaned_data['phone_number']
+            user.address = form.cleaned_data['address']
+            user.save()
             messages.add_message(request, messages.INFO, 'Спасибо за заказ! Менеджер с Вами свяжется')
             return HttpResponseRedirect('/')
         return HttpResponseRedirect('/checkout/')
 
 
 
-class CustomRegistrationView(SignupView):
-    form_class = CustomSignupForm
-
-
-
-class ProfilePage(LoginRequiredMixin, CartMixin, View):
+#Work with Users
+class CustomerProfilePage(CustomLoginRequiredMixin,View):
     
-    def get(self, request,*args, **kwargs):
+    def get(self, request, *args, **kwargs):
         customer = Customer.objects.get(user=request.user)
         orders = Order.objects.filter(customer=customer).order_by('-created_at')
-        return render(request, 'profile/profile_detail.html', {'customer': customer, 'orders': orders})        
+        return render(request, 'profile/customer_profile_detail.html', {'customer': customer})  
+
+
+class LoginView(IsLoginRequiredMixin, LoginView):
+    def get(self, request):
+        form = AuthenticationForm()
+        return render(request, 'account/login.html', {'form': form})
+
+    def post(self, request):
+        form = AuthenticationForm(request=request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return HttpResponseRedirect('/')
+            else:
+                raise ValidationError('User not found')
+        else:
+            return render(request, 'account/login.html', {'form': form})
+
+
+class CustomerSignupView(IsLoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        form = CustomerSignUpForm(request.POST or None)
+        return render(request, 'account/signup.html', {'form': form})
+    
+    def post(self, request, *args, **kwargs):
+        form = CustomerSignUpForm(request.POST or None)
+        if form.is_valid():
+            inactive_user = send_verification_email(request, form)
+            return HttpResponseRedirect('confirm/')
+        return render(request, 'account/signup.html', {'form': form})
+
+
+class VendorSignupView(IsLoginRequiredMixin,View):
+    def get(self, request, *args, **kwargs):
+        form = VendorCreationForm(request.POST or None)
+        return render(request, 'account/signup.html', {'form': form})
+    
+    def post(self, request, *args, **kwargs):
+        form = VendorCreationForm(request.POST or None)
+        if form.is_valid():
+            # form.save()
+            vendor = form.save(commit=False)
+            vendor.is_active = False
+            vendor.save()
+            messages.add_message(request, messages.INFO, 'В течении 2-3 суток с вами свяжется наш менеджер. Ожидайте.')
+            return HttpResponseRedirect('/')
+        return render(request, 'account/signup.html', {'form': form, 'cart': self.cart})
+
+
+class VendorProfilePage(CustomLoginRequiredMixin, View):
+    def get(self, request):
+        try:
+            vendor_p = Vendor.objects.get(created_by=request.user)
+        except:
+            return HttpResponseRedirect('/')
+        products = Product.objects.filter(vendor=vendor_p)
+        return render(request, 'profile/vendor_profile.html', {'vendor_p':vendor_p, 'products': products})
+
+
+class VendorProductListPageView(DetailView):
+    model = Vendor
+    template_name = 'vendor/vendor_product_list.html'
+    context_object_name = 'vendor'
+    slug_url_kwarg = 'slug'
+
+
+def get_json_categories_data(request):
+    categories_val = list(Category.objects.values())
+    return JsonResponse({'data': categories_val})
+
+
+def get_json_feature_name_data(request, *args, **kwargs):
+    selected_category = kwargs.get('category')
+    obj_feature_names = list(ProductFeatureName.objects.filter(category__name=selected_category).values())
+    return JsonResponse({'data': obj_feature_names})
+
+
+class ProductCreateView(CustomLoginRequiredMixin, View):
+    def get(self, request):
+        form = ProductCreateForm()
+        categories = Category.objects.all()
+        return render(request, 'vendor/product_create.html', {'categories': categories})
+
+    # def post(self, request):
+        # form = ProductCreateForm(request.POST, request.FILES)
+        # if form.is_valid():
+        #     product = form.save(commit=False)
+        #     product.vendor = Vendor.objects.get(created_by=request.user)
+        #     product.slug = slugify(product.title)
+        #     product.save()
+        # return redirect('/')
+
+
+def create_feature(request):
+    form = ProductCreateForm(request.POST, request.FILES)
+    if request.is_ajax():
+        category = request.POST.get('category')
+        category_obj = Category.objects.get(name=category)
+        feature_name = request.POST.get('feature_name')
+        print(feature_name)
+        print(category)
+        # product_feature_name = ProductFeatureName.objects.get(feature_name=feature_name, category=category_obj)
+        # print(product_feature_name)
+        # product = Product.objects.get(name='Django for professionals')
+        # ProductFeatureValue.objects.create(feature=product_feature_name, product=product, feature_value='helo')
+        return JsonResponse({'created': True})
+    return JsonResponse({'created': False}, safe=False)
+
+
+class ConfirmLinkView(IsLoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'account/email_confirm_p.html')
+
+
+confirm_link = ConfirmLinkView.as_view()

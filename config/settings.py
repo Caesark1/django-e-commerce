@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'crispy_forms',
     'allauth',
     'allauth.account',
+    'verify_email',
 
     # local 
     'mainapp',
@@ -75,6 +76,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'mainapp.context_processors.get_cart_model',
+                'mainapp.context_processors.get_is_vendor'
             ],
         },
     },
@@ -131,14 +134,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATICFILES_DIRS = (BASE_DIR / 'static',)
+STATIC_ROOT = BASE_DIR / 'staticfiles/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-STATICFILE_DIRS = (
-    BASE_DIR / 'static_dev'
-)
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 AUTHENTICATION_BACKENDS = [
@@ -146,11 +147,11 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-LOGIN_REDIRECT_URL = 'index'
+# LOGIN_REDIRECT_URL = 'index'
 ACCOUNT_LOGOUT_REDIRECT = 'index'
+VERIFICATION_SUCCESS_TEMPLATE = 'account/email_confirm_done.html'
 
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+# LOGIN_URL = 'index'
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_HOST_USER = 'Testfordjango1@gmail.com'
@@ -158,6 +159,6 @@ EMAIL_HOST_PASSWORD = 'testdjango'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-ACCOUNT_FORMS = {'signup': 'mainapp.forms.CustomSignupForm'}
+HTML_MESSAGE_TEMPLATE = 'account/email_confirmation_msg.html'
 
 SITE_ID = 1

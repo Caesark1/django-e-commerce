@@ -1,0 +1,30 @@
+{% extends '_base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+   Create product
+{% endblock %}
+
+{% block content %}
+<form action="." method="POST" enctype='multipart/form-data' class="ui form" id="category-form">
+    {% csrf_token %}
+    <div class="ui fluid selection dropdown" id="categories">
+        <input type="hidden" name="category">
+        <i class="dropdown icon"></i>
+        <div class="default text" id = 'category-text'>Select Category</div>
+        <div class="menu" id="categories-data-box">
+        </div>        
+      </div>
+      <div id="feature-names">
+        <div class="field">
+          <div class="field" id="feature-names-data-box">
+          </div>
+        </div>
+      </div>
+    <!-- {{form|crispy}} -->
+    <div class="mt-5">
+      <button type='submit' class="ui is-dark button">Create Product</button>
+    </div>
+</form>
+
+{% endblock %}

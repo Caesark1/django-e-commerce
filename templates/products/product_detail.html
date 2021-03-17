@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" class="mt-2">
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'index' %}">Home</a></li>
       {% for parent in product.category.get_ancestors %}
@@ -18,25 +18,28 @@
 <div class="row">
 
     <div class="col-nd-4 w-100">
-        {% for image in product_images %}
-        <img src="{{image.url}}" class="img-fluid">
+        {% for image in product.product_images.all %}
+        <img src="{{image.image.url}}" class="img-fluid">
         {% endfor %}
     </div>
     <div class="col-nd-8">
-      <p style='font-size:13px;'>Категория: {{product.category}}</p>
         <h3>{{product.title}}</h3>
-        <p>Продавец: {{product.vendor}}</p>        
+        <p>Продавец: <a href="{{product.vendor.get_absolute_url}}">{{product.vendor.name_of_shop}}</a></p>   
         <p>Цена: {{product.price}} Сом</p>
         <p>Описание: {{product.description}}</p>
-        Характеристики:
+        <p>Кол-во на складе: {{product.qty}}</p>
         <hr>
-        {% for product_feature_value in product_feature_values %}
+        {% if product.product_features_values %}
+        <h5 class='mb-4'>Дополнительные характеристики:</h5>
+        <p>
+          {% for product_feature_value in product.product_features_values.all %} 
         {% if product_feature_value.feature.postfix_for_value %}
-        <p>{{product_feature_value.feature.feature_name }}: {{product_feature_value.feature_value}} {{product_feature_value.feature.postfix_for_value }}</p>
+        <p>{{product_feature_value.feature.feature_name}}: {{product_feature_value.feature_value}} {{product_feature_value.feature.postfix_for_value }}</p>
         {% else %}
-        <p>{{product_feature_value.feature.feature_name }}: {{product_feature_value.feature_value}}</p>
+        <p>{{product_feature_value.feature.feature_name}}: {{product_feature_value.feature_value}}</p>
         {% endif %}
         {% endfor %}
+        {% endif %}
         <hr>
         <a href="{% url 'add_cart' slug=product.slug %}"><button class="btn btn-danger">Добавить в корзину</button></a>
     </div>

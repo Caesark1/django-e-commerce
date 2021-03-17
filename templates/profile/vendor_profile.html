@@ -1,0 +1,40 @@
+{% extends '_base.html' %}
+
+{% block title %}
+    {{vendor_p.created_by.username}}'s page
+{% endblock %}
+
+{% block content %}
+    <div class="box">
+        <h1 class='title'>
+            Vendor Admin - {{vendor_p.created_by.username}}
+        </h1>
+        <a href="{% url 'logout' %}" class="button is-danger is-uppercase">LogOut</a>
+    </div>
+    <div class="box">
+        <a href="{% url 'product_create' %}">Create product</a>
+        <h2 class='is-size-3 mb-4'>My Products</h2>
+        
+        {% if products %}
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Price</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td><a href="{{product.get_absolute_url }}">{{product.title}}</a></td>
+                        <td>${{product.price}}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>You don't have any products yet</p>
+        {% endif %}
+    </div>
+{% endblock %}

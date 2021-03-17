@@ -3,4 +3,5 @@ from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
-    pass
+    is_customer = models.BooleanField(default=False)
+    is_vendor = models.BooleanField(default=False)

@@ -1,5 +1,23 @@
 from django.views.generic import View
+from django.shortcuts import redirect
 from .models import Cart, Customer
+from django.contrib.auth.mixins import LoginRequiredMixin, AccessMixin 
+from django.http import HttpResponseRedirect
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
+
+
+class CustomLoginRequiredMixin(LoginRequiredMixin):
+    login_url = "login"
+
+
+class IsLoginRequiredMixin(AccessMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return HttpResponseRedirect('/')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class CartMixin(View):

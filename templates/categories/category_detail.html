@@ -1,4 +1,5 @@
 {% extends '_base.html' %}
+{% load static %}
 {% load mptt_tags %}
 {% block title %}
     {{category.name}}
@@ -18,7 +19,11 @@
         {% for product in category.products.all %}
         <div class="col-lg-4 col-md-6 mb-4 mt-4">
           <div class="card h-100">
+            {% if product.thumbnail %}
             <a href="{{product.get_absolute_url}}"><img class="card-img-top" src="{{product.thumbnail.url}}" alt=""></a>
+            {% else %}
+            <a href="{{product.get_absolute_url}}"><img class="card-img-top" src="{% static 'image/no_image.jpg' %}" alt=""></a>
+            {% endif %}
             <div class="card-body">
               <h4 class="card-title">
                 <a href="{{product.get_absolute_url}}">{{product.title}}</a>

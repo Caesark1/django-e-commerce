@@ -7,6 +7,8 @@ from django.shortcuts import reverse
 from mptt.models import MPTTModel, TreeForeignKey
 from django.urls import reverse
 from django.utils import timezone
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 User = get_user_model()
@@ -18,21 +20,26 @@ class ProductAvailableManager(models.Manager):
 
 
 class Vendor(models.Model):
-    name = models.CharField(max_length=200)
+    name_of_shop = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.OneToOneField(User, related_name='vendor', on_delete=models.CASCADE)
 
     class Meta:
-        ordering = ['name']
+        ordering = ['name_of_shop']
         verbose_name = 'Продавец'
         verbose_name_plural = 'Продавцы'
 
     def __str__(self):
-        return self.name
+        return f"{self.name_of_shop} created by {self.created_by.username} - {self.created_by.last_name} {self.created_by.first_name}"
+    
+    def get_absolute_url(self):
+        return reverse("vendor_detail", kwargs={"slug": self.slug})
+    
 
 
 class Customer(models.Model):
-    user = models.ForeignKey(User, verbose_name='Пользователь ', on_delete=models.CASCADE, related_name = 'customer')
+    user = models.ForeignKey(User, verbose_name='Пользователь ', on_delete=models.CASCADE, related_name='customer')
     phone_number = models.CharField(max_length=15, verbose_name='Номер телефона пользователя', null=True, blank=True)
     address = models.CharField(max_length=100, verbose_name='Адрес пользователя', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -80,7 +87,7 @@ class Cart(models.Model):
 class Product(models.Model):
 
     category = models.ForeignKey('Category', verbose_name='Категория', on_delete=models.CASCADE, related_name='products')
-    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True)
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, blank=True, null=True, related_name='vendor_products')
     title = models.CharField(max_length=255, verbose_name='Наименование Товара')
     slug = models.SlugField(unique=True)
     description = models.TextField(verbose_name='Описание товара', null=True)
@@ -100,12 +107,19 @@ class Product(models.Model):
 
     def get_model_name(self):
         return self.__class__.__name__.lower()
+    
+    @property
+    def get_thumbnail_url(self):
+        if self.thumbnail and hasattr(self.thumbnail, 'url'):
+            return self.thumbnail.url
+        else:
+            return "./static/image/no_image.jpg"
 
 
 class ProductImage(models.Model):
 
     description = models.CharField(max_length=100, blank=True, null=True)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
     image = models.ImageField(upload_to='uploads/', blank=True, null=True)
 
     def __str__(self):
@@ -114,7 +128,7 @@ class ProductImage(models.Model):
 
 class ProductFeatureName(models.Model):
 
-    category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='product_feature_names')
     feature_key = models.CharField(max_length=200)
     feature_name = models.CharField(max_length=200)
     postfix_for_value = models.CharField(max_length=20, null=True, blank=True)
@@ -124,15 +138,12 @@ class ProductFeatureName(models.Model):
 
 
 class ProductFeatureValue(models.Model):
-
-    category = models.ForeignKey('Category', on_delete=models.CASCADE)
-    feature = models.ForeignKey(ProductFeatureName, null=True, blank=True, on_delete=models.CASCADE, related_name='features')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    feature = models.ForeignKey(ProductFeatureName, null=True, on_delete=models.CASCADE, related_name='features')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_features_values')
     feature_value = models.CharField(max_length=200, unique=True, null=True, blank=True)
 
     def __str__(self):
-        return f'Валидатор категории "{self.category.name} | "'  \
-               f'Характеристики - {self.feature.feature_name}' \
+        return f'Характеристики - {self.feature.feature_name}' \
                f'Значение - {self.feature_value}'
 
 
@@ -155,12 +166,6 @@ class Category(MPTTModel):
     
     def get_absolute_url(self):
         return reverse("category_detail", kwargs={"slug": self.slug})
-
-    def get_fields_for_filter_in_template(self):
-        return ProductFeature.objects.filter(
-            category=self,
-            use_in_filter=True,
-        ).prefetch_related('category').value('featured_key', 'featured_measure', 'feature_name', 'filter_type')
 
 
 class Order(models.Model):

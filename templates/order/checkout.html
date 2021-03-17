@@ -1,5 +1,6 @@
 {% extends '_base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}
     Checkout page
@@ -23,7 +24,11 @@
       <tr>
         <th scope="row"><a href="{{item.content_object.get_absolute_url}}">{{ item.product.title}}</a></th>
 
-        <td class='w-25'><img class="img-fluid" src="{{item.product.image.url}}" alt=""></td>
+        {% if item.product.thumbnail %}
+            <td class='w-25'><img class="img-fluid" src="{{item.product.thumbnail.url}}" alt=""></td>
+            {% else %}
+            <td class='w-25'><img class="card-img-top" src="{% static 'image/no_image.jpg' %}" alt=""></td>
+            {% endif %}
         <td>{{item.product.price}}</td>
         <td>
             {{item.qty}}

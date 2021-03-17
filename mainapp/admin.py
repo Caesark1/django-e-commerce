@@ -2,6 +2,11 @@ from django.contrib import admin
 from .models import *
 from mptt.admin import DraggableMPTTAdmin
 from django.utils.safestring import mark_safe
+from django import forms
+
+
+class ProductFeatureNameChoiceField(forms.ModelChoiceField):
+    pass
 
 
 class ProductFeatureNameInline(admin.TabularInline):
@@ -11,7 +16,7 @@ class ProductFeatureNameInline(admin.TabularInline):
 
 class ProductFeatureValueInline(admin.TabularInline):
     model = ProductFeatureValue
-    fields = ('category', 'feature', 'feature_value')
+    fields = ('feature', 'feature_value')
 
 
 class ProductImageInline(admin.TabularInline):
@@ -31,6 +36,12 @@ class CategoryAdmin(DraggableMPTTAdmin):
 class ProductAdmin(admin.ModelAdmin):
     inlines = [ProductImageInline, ProductFeatureValueInline]
     list_display = ('title', 'date_added')
+
+    def formfield_for_foreignkey(self, db_field, *args, **kwargs):
+        print(ProductFeatureNameChoiceField(ProductFeatureName.objects.filter(id=1)))
+        # if db_field.name == 'category':
+        #     return ProductFeatureNameChoiceField(ProductFeatureName.objects.filter(id=1))
+        return super().formfield_for_foreignkey(db_field, *args, **kwargs)
 
 
 admin.site.register(CartProduct)

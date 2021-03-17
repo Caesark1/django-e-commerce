@@ -1,0 +1,43 @@
+{% extends '_base.html' %}
+{% load static %}
+
+{% block title %}
+   {{ vendor.name_of_shop }}
+{% endblock %}
+
+{% block content %}
+<div class="columns is-multiline mb-6">
+    <div class="column is-12 has-text-contered mt-6 mb-6">
+        <h2 class='is-size-3'>All products of "{{ vendor.name_of_shop }}"</h2>
+    </div>
+
+</div>
+    
+{% for product in vendor.vendor_products.all %}
+<div class="row">
+    <div class="col-lg-4 col-md-6 mb-4 mt-4">
+      <div class="card h-100">
+        {% if product.thumbnail %}
+              <a href="{{product.get_absolute_url}}"><img class="card-img-top" src="{{product.thumbnail.url}}" alt=""></a>
+              {% else %}
+              <a href="{{product.get_absolute_url}}"><img class="card-img-top" src="{% static '/image/no_image.jpg' %}" alt=""></a>
+              {% endif %}
+        <div class="card-body">
+          <h4 class="card-title">
+            <a href="{{product.get_absolute_url}}">{{product.title}}</a>
+          </h4>
+          <h5>{{product.price}}</h5>
+          <p class="card-text">
+            <a href="{% url 'add_cart' slug=product.slug %}">
+              <button class='btn btn-danger'>Добавить в корзину</button>
+            </a>
+          </p>
+        </div>
+        <div class="card-footer">
+          {{product.category}}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}
