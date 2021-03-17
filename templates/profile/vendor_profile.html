@@ -5,6 +5,16 @@
 {% endblock %}
 
 {% block content %}
+{% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>{{message}}</strong>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      {% endfor %}
+    {% endif %}
     <div class="box">
         <h1 class='title'>
             Vendor Admin - {{vendor_p.created_by.username}}
@@ -21,6 +31,7 @@
                     <tr>
                         <th>Title</th>
                         <th>Price</th>
+                        <th>Delete</th>
                         
                     </tr>
                 </thead>
@@ -29,6 +40,7 @@
                     <tr>
                         <td><a href="{{product.get_absolute_url }}">{{product.title}}</a></td>
                         <td>${{product.price}}</td>
+                        <td><a href="{% url 'product-delete' slug=product.slug %}"><button class="btn btn-danger">Удалить</button></a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -1,14 +1,12 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from io import BytesIO
-from PIL import Image
-from django.core.files import File
 from django.shortcuts import reverse
 from mptt.models import MPTTModel, TreeForeignKey
 from django.urls import reverse
 from django.utils import timezone
-from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils.text import slugify
+from django.db.models.signals import pre_save
 
 
 User = get_user_model()
@@ -117,10 +115,10 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-
-    description = models.CharField(max_length=100, blank=True, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_images')
-    image = models.ImageField(upload_to='uploads/', blank=True, null=True)
+    image1 = models.ImageField(upload_to='uploads/', blank=True, null=True)
+    image2 = models.ImageField(upload_to='uploads/', blank=True, null=True)
+    image3 = models.ImageField(upload_to='uploads/', blank=True, null=True)
 
     def __str__(self):
         return f'Фотография - {self.product.title} продукта'
@@ -140,7 +138,7 @@ class ProductFeatureName(models.Model):
 class ProductFeatureValue(models.Model):
     feature = models.ForeignKey(ProductFeatureName, null=True, on_delete=models.CASCADE, related_name='features')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_features_values')
-    feature_value = models.CharField(max_length=200, unique=True, null=True, blank=True)
+    feature_value = models.CharField(max_length=200)
 
     def __str__(self):
         return f'Характеристики - {self.feature.feature_name}' \
@@ -196,3 +194,19 @@ class Order(models.Model):
 
     def __str__(self) -> str:
         return f"{self.customer.user}s order"
+
+def unique_slug_generator(instance):
+    constant_slug = slugify(instance.title, allow_unicode=True)
+    slug = constant_slug
+    num = 0
+    Klass = instance.__class__
+    while Klass.objects.filter(slug=slug).exists():
+        num += 1
+        slug = "{slug}-{num}".format(slug=constant_slug, num=num)
+    return slug
+
+def pre_save_reciever(sender, instance, *args, **kwargs):
+    if not instance.slug or instance.title != Product.objects.filter(slug=instance.slug):
+        instance.slug = unique_slug_generator(instance)
+
+pre_save.connect(pre_save_reciever, sender=Product)

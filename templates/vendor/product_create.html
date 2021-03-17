@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+<div id="allert-box"></div>
 <form action="." method="POST" enctype='multipart/form-data' class="ui form" id="category-form">
     {% csrf_token %}
     <div class="ui fluid selection dropdown" id="categories">
@@ -23,7 +24,8 @@
           </div>
         </div>
       </div>
-    <!-- {{form|crispy}} -->
+    {{form|crispy}}
+    <div class="thumbnail" id="thumbnail"></div>
     <div class="mt-5">
       <button type='submit' class="ui is-dark button">Create Product</button>
     </div>

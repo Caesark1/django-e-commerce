@@ -21,7 +21,7 @@ class ProductFeatureValueInline(admin.TabularInline):
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
-    fields = ('description', 'image')
+    fields = ('image1', 'image2', 'image3')
 
 
 @admin.register(Category)
@@ -39,8 +39,6 @@ class ProductAdmin(admin.ModelAdmin):
 
     def formfield_for_foreignkey(self, db_field, *args, **kwargs):
         print(ProductFeatureNameChoiceField(ProductFeatureName.objects.filter(id=1)))
-        # if db_field.name == 'category':
-        #     return ProductFeatureNameChoiceField(ProductFeatureName.objects.filter(id=1))
         return super().formfield_for_foreignkey(db_field, *args, **kwargs)
 
 

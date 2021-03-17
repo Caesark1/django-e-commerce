@@ -18,7 +18,7 @@ class ProductCreateForm(forms.ModelForm):
 class ProductImageForm(forms.ModelForm):
     class Meta:
         model = ProductImage
-        fields = ('image',)
+        fields = ('image1','image2', 'image3')
 
 
 # class ProductFeatureValueForm(forms.ModelForm):

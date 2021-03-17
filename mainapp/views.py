@@ -5,7 +5,7 @@ from django.views.generic import DetailView, View
 from .mixins import CartMixin, IsLoginRequiredMixin, CustomLoginRequiredMixin
 from django.http import HttpResponseRedirect, JsonResponse
 from django.contrib import messages
-from .forms import OrderForm, CustomerSignUpForm, VendorCreationForm, ProductCreateForm
+from .forms import OrderForm, CustomerSignUpForm, VendorCreationForm, ProductCreateForm, ProductImageForm
 from .utils import recalc_cart
 from django.db import transaction
 from django.contrib.auth import authenticate, get_user_model, login
@@ -134,11 +134,12 @@ class CheckoutView(CustomLoginRequiredMixin, CartMixin, View):
         return render(request, 'order/checkout.html', context)
 
 
-class CreateOrderView(CustomLoginRequiredMixin, View):
+class CreateOrderView(CustomLoginRequiredMixin, CartMixin, View):
 
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         form = OrderForm(request.POST or None)
+        print(request.POST)
         customer = Customer.objects.get(user=request.user)
         if form.is_valid():
             new_order = form.save(commit=False)
@@ -221,7 +222,6 @@ class VendorSignupView(IsLoginRequiredMixin,View):
     def post(self, request, *args, **kwargs):
         form = VendorCreationForm(request.POST or None)
         if form.is_valid():
-            # form.save()
             vendor = form.save(commit=False)
             vendor.is_active = False
             vendor.save()
@@ -238,6 +238,15 @@ class VendorProfilePage(CustomLoginRequiredMixin, View):
             return HttpResponseRedirect('/')
         products = Product.objects.filter(vendor=vendor_p)
         return render(request, 'profile/vendor_profile.html', {'vendor_p':vendor_p, 'products': products})
+
+
+class VendorProductDeleteView(CustomLoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        product_slug = kwargs.get('slug')
+        product = Product.available.get(slug=product_slug)
+        product.delete()
+        messages.add_message(request, messages.INFO, 'Товар успешно удален')
+        return HttpResponseRedirect('/vendor-profile/')
 
 
 class VendorProductListPageView(DetailView):
@@ -260,36 +269,38 @@ def get_json_feature_name_data(request, *args, **kwargs):
 
 class ProductCreateView(CustomLoginRequiredMixin, View):
     def get(self, request):
-        form = ProductCreateForm()
+        product_form = ProductCreateForm()
+        product_image_form = ProductImageForm()
         categories = Category.objects.all()
-        return render(request, 'vendor/product_create.html', {'categories': categories})
+        return render(request, 'vendor/product_create.html', {'form':product_form, 'categories': categories})
 
     # def post(self, request):
-        # form = ProductCreateForm(request.POST, request.FILES)
-        # if form.is_valid():
-        #     product = form.save(commit=False)
-        #     product.vendor = Vendor.objects.get(created_by=request.user)
-        #     product.slug = slugify(product.title)
-        #     product.save()
-        # return redirect('/')
+    #     form = ProductCreateForm(request.POST, request.FILES)
+    #     if form.is_valid():
+    #         product = form.save(commit=False)
+    #         product.vendor = Vendor.objects.get(created_by=request.user)
+    #         product.slug = slugify(product.title)
+    #         product.save()
+    #     
 
 
 def create_feature(request):
     form = ProductCreateForm(request.POST, request.FILES)
+    vendor = Vendor.objects.get(created_by=request.user)
     if request.is_ajax():
         category = request.POST.get('category')
         category_obj = Category.objects.get(name=category)
-        feature_names = request.POST.get('feature_names')
-        feature_values = request.POST.get('feature_values')
-        print(feature_names)
-        print(feature_values.split(','))
-        print(category)
-        print(request.POST)
-        # product_feature_name = ProductFeatureName.objects.get(feature_name=feature_name, category=category_obj)
-        # print(product_feature_name)
-        # product = Product.objects.get(name='Django for professionals')
-        # ProductFeatureValue.objects.create(feature=product_feature_name, product=product, feature_value='helo')
-        return JsonResponse({'created': True})
+        feature_names = request.POST.get('feature_names').split(',')
+        feature_values = request.POST.get('feature_values').split(',')
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.category = category_obj
+            product.vendor = vendor
+            product.save()
+            for index in range(len(feature_names)):
+                product_feature_name = ProductFeatureName.objects.get(feature_name=feature_names[index], category=category_obj)
+                ProductFeatureValue.objects.create(feature=product_feature_name, product=product, feature_value=feature_values[index])
+            return JsonResponse({'created': True})
     return JsonResponse({'created': False}, safe=False)
 
 

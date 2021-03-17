@@ -21,6 +21,7 @@ urlpatterns = [
     path('accounts/vendor_signup/', views.VendorSignupView.as_view(), name='vendor_signup'),
     path('vendor/create/', views.ProductCreateView.as_view(), name='product_create'),
     path('create/', views.create_feature, name='create_feature'),
+    path('product-delete/<str:slug>', views.VendorProductDeleteView.as_view(), name='product-delete'),
     path('vendor/<str:slug>/', views.VendorProductListPageView.as_view(), name='vendor_detail'),
 
     path('accounts/signup/confirm/', views.confirm_link, name='confirm_email_link'),
